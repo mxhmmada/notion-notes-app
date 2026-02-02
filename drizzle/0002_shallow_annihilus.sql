@@ -1,0 +1,2 @@
+ALTER TABLE `blocks` MODIFY COLUMN `type` enum('paragraph','heading1','heading2','heading3','bulletList','numberedList','todo','code','quote','divider','image') NOT NULL;--> statement-breakpoint
+ALTER TABLE `pages` MODIFY COLUMN `title` text NOT NULL;

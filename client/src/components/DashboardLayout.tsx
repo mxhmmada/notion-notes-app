@@ -21,16 +21,12 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { LogOut, PanelLeft, Plus, Trash2 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
-
-const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
-];
+import { trpc } from "@/lib/trpc";
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
@@ -112,8 +108,13 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  const { data: pages = [] } = trpc.pages.list.useQuery();
+  const createPageMutation = trpc.pages.create.useMutation({
+    onSuccess: (data) => {
+      setLocation(`/page/${data.id}`);
+    },
+  });
 
   useEffect(() => {
     if (isCollapsed) {
@@ -179,26 +180,44 @@ function DashboardLayoutContent({
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
+            <SidebarMenu className="px-2 py-1 space-y-1">
+              {pages.map(page => {
+                const isActive = location === `/page/${page.id}`;
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={page.id}>
                     <SidebarMenuButton
                       isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
+                      onClick={() => setLocation(`/page/${page.id}`)}
+                      tooltip={page.title}
                       className={`h-10 transition-all font-normal`}
                     >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
+                      <span className="text-lg">{page.icon || "📄"}</span>
+                      <span className="truncate">{page.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
             </SidebarMenu>
+            <div className="px-2 py-2 mt-2 border-t border-border pt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => createPageMutation.mutate({})}
+                className="w-full justify-start"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Page
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation("/trash")}
+                className="w-full justify-start mt-1"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Trash
+              </Button>
+            </div>
           </SidebarContent>
 
           <SidebarFooter className="p-3">
@@ -250,7 +269,7 @@ function DashboardLayoutContent({
               <div className="flex items-center gap-3">
                 <div className="flex flex-col gap-1">
                   <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? "Menu"}
+                    {pages.find(p => location === `/page/${p.id}`)?.title ?? "Pages"}
                   </span>
                 </div>
               </div>
