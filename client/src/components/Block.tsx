@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from "react";
-import { GripVertical, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { useRef, useEffect, useState, useCallback } from "react";
+import { GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface BlockProps {
@@ -23,15 +23,36 @@ export default function Block({
 }: BlockProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isComposing, setIsComposing] = useState(false);
 
-  // Handle markdown shortcuts
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const content = contentRef.current?.textContent || "";
+  // Sync external content changes to DOM
+  useEffect(() => {
+    if (contentRef.current && !isComposing) {
+      const currentText = contentRef.current.textContent || "";
+      if (currentText !== block.content) {
+        contentRef.current.textContent = block.content;
+      }
+    }
+  }, [block.content, isComposing]);
+
+  // Handle markdown shortcuts and special keys
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (isComposing) return;
+
+    const target = e.currentTarget;
+    const text = target.textContent || "";
+    const selection = window.getSelection();
+    const cursorPos = selection?.anchorOffset || 0;
 
     // Enter key - create new block
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
+      
+      // Save current block content
+      const content = target.textContent || "";
+      onChange({ content });
+      
+      // Create new block and focus it immediately
       onAddBlockAfter();
       return;
     }
@@ -43,28 +64,35 @@ export default function Block({
       return;
     }
 
-    // Tab - indent
+    // Backspace on empty block - merge with previous
+    if (e.key === "Backspace" && text === "" && index > 0) {
+      e.preventDefault();
+      onDelete();
+      return;
+    }
+
+    // Tab - indent (placeholder)
     if (e.key === "Tab") {
       e.preventDefault();
       // TODO: Implement indentation
     }
 
-    // Markdown shortcuts
-    if (e.key === " " && content.trim()) {
-      const trimmed = content.trim();
+    // Markdown shortcuts detection (on space after typing)
+    if (e.key === " " && text.trim()) {
+      const trimmed = text.trim();
 
       // Heading shortcuts
-      if (trimmed.startsWith("#")) {
-        const level = trimmed.match(/^#+/)?.[0].length || 1;
+      if (trimmed.match(/^#+$/)) {
+        const level = trimmed.length;
         if (level <= 3) {
-          onChange({ type: `heading${level}`, content: trimmed.slice(level + 1).trim() });
+          onChange({ type: `heading${level}`, content: "" });
           e.preventDefault();
           return;
         }
       }
 
       // Bullet list
-      if (trimmed === "-") {
+      if (trimmed === "-" || trimmed === "*") {
         onChange({ type: "bulletList", content: "" });
         e.preventDefault();
         return;
@@ -85,31 +113,51 @@ export default function Block({
       }
 
       // Divider
-      if (trimmed === "---") {
+      if (trimmed === "---" || trimmed === "***") {
         onChange({ type: "divider", content: "" });
         e.preventDefault();
         return;
       }
     }
-  };
+  }, [isComposing, index, onChange, onDelete, onAddBlockAfter]);
 
-  const handleInput = () => {
-    const text = contentRef.current?.textContent || "";
-    onChange({ content: text });
+  // Handle input - update state without re-rendering
+  const handleInput = useCallback(() => {
+    if (contentRef.current && !isComposing) {
+      const text = contentRef.current.textContent || "";
+      onChange({ content: text });
+    }
+  }, [isComposing, onChange]);
+
+  // Handle composition events (IME input)
+  const handleCompositionStart = () => setIsComposing(true);
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
+    if (contentRef.current) {
+      const text = contentRef.current.textContent || "";
+      onChange({ content: text });
+    }
   };
 
   const renderBlockContent = () => {
-    const baseClasses = "block-content w-full";
+    const baseClasses = "block-content w-full outline-none";
+
+    const commonProps = {
+      ref: contentRef,
+      contentEditable: true,
+      suppressContentEditableWarning: true,
+      onKeyDown: handleKeyDown,
+      onInput: handleInput,
+      onCompositionStart: handleCompositionStart,
+      onCompositionEnd: handleCompositionEnd,
+      spellCheck: "true" as const,
+    };
 
     switch (block.type) {
       case "heading1":
         return (
           <div
-            ref={contentRef}
-            contentEditable
-            suppressContentEditableWarning
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
+            {...commonProps}
             className={`${baseClasses} text-2xl font-bold`}
             data-placeholder="Heading 1"
           >
@@ -119,11 +167,7 @@ export default function Block({
       case "heading2":
         return (
           <div
-            ref={contentRef}
-            contentEditable
-            suppressContentEditableWarning
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
+            {...commonProps}
             className={`${baseClasses} text-xl font-bold`}
             data-placeholder="Heading 2"
           >
@@ -133,11 +177,7 @@ export default function Block({
       case "heading3":
         return (
           <div
-            ref={contentRef}
-            contentEditable
-            suppressContentEditableWarning
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
+            {...commonProps}
             className={`${baseClasses} text-lg font-bold`}
             data-placeholder="Heading 3"
           >
@@ -147,13 +187,9 @@ export default function Block({
       case "bulletList":
         return (
           <div className="flex gap-2">
-            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground flex-shrink-0">•</span>
             <div
-              ref={contentRef}
-              contentEditable
-              suppressContentEditableWarning
-              onKeyDown={handleKeyDown}
-              onInput={handleInput}
+              {...commonProps}
               className={baseClasses}
               data-placeholder="List item"
             >
@@ -164,13 +200,9 @@ export default function Block({
       case "numberedList":
         return (
           <div className="flex gap-2">
-            <span className="text-muted-foreground">{index + 1}.</span>
+            <span className="text-muted-foreground flex-shrink-0">{index + 1}.</span>
             <div
-              ref={contentRef}
-              contentEditable
-              suppressContentEditableWarning
-              onKeyDown={handleKeyDown}
-              onInput={handleInput}
+              {...commonProps}
               className={baseClasses}
               data-placeholder="List item"
             >
@@ -185,15 +217,13 @@ export default function Block({
               type="checkbox"
               checked={block.isCompleted}
               onChange={(e) => onChange({ isCompleted: e.target.checked })}
-              className="mt-1"
+              className="mt-1 flex-shrink-0"
             />
             <div
-              ref={contentRef}
-              contentEditable
-              suppressContentEditableWarning
-              onKeyDown={handleKeyDown}
-              onInput={handleInput}
-              className={`${baseClasses} ${block.isCompleted ? "line-through text-muted-foreground" : ""}`}
+              {...commonProps}
+              className={`${baseClasses} ${
+                block.isCompleted ? "line-through text-muted-foreground" : ""
+              }`}
               data-placeholder="To-do"
             >
               {block.content}
@@ -204,11 +234,7 @@ export default function Block({
         return (
           <div className="flex gap-2 border-l-4 border-muted pl-4">
             <div
-              ref={contentRef}
-              contentEditable
-              suppressContentEditableWarning
-              onKeyDown={handleKeyDown}
-              onInput={handleInput}
+              {...commonProps}
               className={`${baseClasses} italic text-muted-foreground`}
               data-placeholder="Quote"
             >
@@ -220,11 +246,7 @@ export default function Block({
         return (
           <pre className="bg-muted p-3 rounded-lg overflow-x-auto">
             <code
-              ref={contentRef}
-              contentEditable
-              suppressContentEditableWarning
-              onKeyDown={handleKeyDown}
-              onInput={handleInput}
+              {...commonProps}
               className={`${baseClasses} font-mono text-sm`}
               data-placeholder="Code"
             >
@@ -233,15 +255,11 @@ export default function Block({
           </pre>
         );
       case "divider":
-        return <div className="block-divider" />;
+        return <div className="h-px bg-border my-2" />;
       default:
         return (
           <div
-            ref={contentRef}
-            contentEditable
-            suppressContentEditableWarning
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
+            {...commonProps}
             className={baseClasses}
             data-placeholder="Type '/' for commands..."
           >
@@ -254,7 +272,7 @@ export default function Block({
   return (
     <div className="group flex items-start gap-2 py-1 hover:bg-muted/50 rounded px-2 transition-all duration-150">
       {/* Drag Handle */}
-      <div className="block-drag-handle pt-1">
+      <div className="opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-grab active:cursor-grabbing pt-1">
         <GripVertical className="w-4 h-4 text-muted-foreground" />
       </div>
 

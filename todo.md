@@ -47,3 +47,31 @@
 - [ ] Create checkpoint for deployment
 - [ ] Verify all features working
 - [ ] Final polish and bug fixes
+
+
+## Critical Bug Fixes (PRIORITY)
+- [x] Fix text appearing backwards in block editor
+- [x] Fix cursor position desync and deletion issues
+- [x] Fix Enter key delay for new block creation
+- [x] Fix cursor auto-focus into new blocks
+- [x] Fix page title editing (input not accepting text)
+- [x] Fix icon update not rendering live in sidebar
+- [x] Prevent editor re-mounting on typing/block creation
+
+## Sidebar Layout Fixes
+- [x] Add Account/Settings/Search buttons to top
+- [x] Restructure sidebar into three zones: top fixed, middle scrollable, bottom fixed
+- [x] Fix button overlap when many pages exist
+- [x] Ensure only pages list is scrollable
+- [x] Fix Trash/New Page button positioning
+
+## Drag-and-Drop Implementation
+- [x] Implement block drag-and-drop reordering
+- [ ] Add visual drop indicators
+- [ ] Add nested block support
+
+## Dark Mode Feature
+- [x] Add dark mode toggle in top-left corner
+- [x] Persist theme preference in localStorage
+- [x] Apply theme to all components (sidebar, editor, modals, inputs)
+- [x] Ensure smooth toggle without cursor/state loss

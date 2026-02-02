@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LogOut, PanelLeft, Plus, Trash2 } from "lucide-react";
+import { LogOut, PanelLeft, Plus, Trash2, Moon, Sun } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -179,7 +180,22 @@ function DashboardLayoutContent({
             </div>
           </SidebarHeader>
 
-          <SidebarContent className="gap-0">
+          {/* Top Controls - Fixed */}
+          <div className="px-2 py-3 border-b border-border space-y-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" className="w-full justify-start text-sm">
+              Account
+            </Button>
+            <Button variant="ghost" size="sm" className="w-full justify-start text-sm">
+              Settings
+            </Button>
+            <Button variant="ghost" size="sm" className="w-full justify-start text-sm">
+              Search
+            </Button>
+          </div>
+
+          {/* Middle - Scrollable Pages List */}
+          <SidebarContent className="gap-0 flex-1 overflow-y-auto">
             <SidebarMenu className="px-2 py-1 space-y-1">
               {pages.map(page => {
                 const isActive = location === `/page/${page.id}`;
@@ -198,27 +214,29 @@ function DashboardLayoutContent({
                 );
               })}
             </SidebarMenu>
-            <div className="px-2 py-2 mt-2 border-t border-border pt-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => createPageMutation.mutate({})}
-                className="w-full justify-start"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Page
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation("/trash")}
-                className="w-full justify-start mt-1"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Trash
-              </Button>
-            </div>
           </SidebarContent>
+
+          {/* Bottom Controls - Fixed */}
+          <div className="px-2 py-3 border-t border-border space-y-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => createPageMutation.mutate({})}
+              className="w-full justify-start"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Page
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/trash")}
+              className="w-full justify-start"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Trash
+            </Button>
+          </div>
 
           <SidebarFooter className="p-3">
             <DropdownMenu>

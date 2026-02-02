@@ -33,9 +33,10 @@ export default function Editor() {
 
   const handleTitleChange = useCallback((newTitle: string) => {
     if (pageId) {
-      updatePageMutation.mutate({ id: pageId, title: newTitle });
+      // Update local state immediately
+      // updatePageMutation.mutate({ id: pageId, title: newTitle });
     }
-  }, [pageId, updatePageMutation]);
+  }, [pageId]);
 
   const handleIconChange = (emoji: string) => {
     if (pageId) {
@@ -110,10 +111,17 @@ export default function Editor() {
             </div>
 
             <div className="flex-1">
-              <Input
+              <input
+                type="text"
                 value={page.title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                className="page-title border-0 bg-transparent p-0 text-4xl font-bold placeholder-muted-foreground focus:outline-none"
+                onChange={(e) => {
+                  const newTitle = e.target.value;
+                  handleTitleChange(newTitle);
+                  if (pageId) {
+                    updatePageMutation.mutate({ id: pageId, title: newTitle });
+                  }
+                }}
+                className="page-title border-0 bg-transparent p-0 text-4xl font-bold placeholder-muted-foreground focus:outline-none w-full"
                 placeholder="Untitled"
               />
             </div>
