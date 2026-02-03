@@ -25,6 +25,7 @@ export default function DraggableBlock({
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -37,7 +38,7 @@ export default function DraggableBlock({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes}>
       <Block
         block={block}
         index={index}
@@ -46,6 +47,8 @@ export default function DraggableBlock({
         onDelete={onDelete}
         onReorder={onReorder}
         onAddBlockAfter={onAddBlockAfter}
+        dragHandleRef={setActivatorNodeRef}
+        dragListeners={listeners}
       />
     </div>
   );

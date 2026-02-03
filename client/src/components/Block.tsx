@@ -10,6 +10,8 @@ interface BlockProps {
   onDelete: () => void;
   onReorder: (toIndex: number) => void;
   onAddBlockAfter: () => void;
+  dragHandleRef?: (element: HTMLElement | null) => void;
+  dragListeners?: any;
 }
 
 export default function Block({
@@ -20,6 +22,8 @@ export default function Block({
   onDelete,
   onReorder,
   onAddBlockAfter,
+  dragHandleRef,
+  dragListeners,
 }: BlockProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -285,7 +289,11 @@ export default function Block({
   return (
     <div className="group relative flex items-start gap-2 py-1">
       {/* Drag handle */}
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-1">
+      <div 
+        ref={dragHandleRef}
+        {...dragListeners}
+        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-1"
+      >
         <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
       </div>
 
