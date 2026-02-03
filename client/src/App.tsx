@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Editor from "./pages/Editor";
 import Trash from "./pages/Trash";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 function Router() {
   return (
@@ -28,10 +29,12 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <SidebarProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </SidebarProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

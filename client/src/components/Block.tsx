@@ -22,18 +22,25 @@ export default function Block({
   onAddBlockAfter,
 }: BlockProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
+  // Block-local state to prevent re-renders from parent
+  const [localContent, setLocalContent] = useState(block.content);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Sync external content changes to DOM
+  // Only update local content when block.id changes (new block), not on every parent render
   useEffect(() => {
-    if (contentRef.current && !isComposing) {
-      const currentText = contentRef.current.textContent || "";
-      if (currentText !== block.content) {
-        contentRef.current.textContent = block.content;
-      }
+    setLocalContent(block.content);
+  }, [block.id]);
+
+  // Debounced save to parent
+  const saveToParent = useCallback((content: string, updates?: any) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-  }, [block.content, isComposing]);
+    saveTimeoutRef.current = setTimeout(() => {
+      onChange({ content, ...updates });
+    }, 300);
+  }, [onChange]);
 
   // Handle markdown shortcuts and special keys
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -42,17 +49,17 @@ export default function Block({
     const target = e.currentTarget;
     const text = target.textContent || "";
     const selection = window.getSelection();
-    const cursorPos = selection?.anchorOffset || 0;
 
     // Enter key - create new block
     if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       
-      // Save current block content
+      // Save current content
       const content = target.textContent || "";
-      onChange({ content });
+      setLocalContent(content);
+      saveToParent(content);
       
-      // Create new block and focus it immediately
+      // Create new block
       onAddBlockAfter();
       return;
     }
@@ -85,6 +92,7 @@ export default function Block({
       if (trimmed.match(/^#+$/)) {
         const level = trimmed.length;
         if (level <= 3) {
+          setLocalContent("");
           onChange({ type: `heading${level}`, content: "" });
           e.preventDefault();
           return;
@@ -93,6 +101,7 @@ export default function Block({
 
       // Bullet list
       if (trimmed === "-" || trimmed === "*") {
+        setLocalContent("");
         onChange({ type: "bulletList", content: "" });
         e.preventDefault();
         return;
@@ -100,6 +109,7 @@ export default function Block({
 
       // Numbered list
       if (trimmed === "1.") {
+        setLocalContent("");
         onChange({ type: "numberedList", content: "" });
         e.preventDefault();
         return;
@@ -107,27 +117,48 @@ export default function Block({
 
       // Todo checkbox
       if (trimmed === "[]") {
+        setLocalContent("");
         onChange({ type: "todo", content: "", isCompleted: false });
+        e.preventDefault();
+        return;
+      }
+
+      // Quote
+      if (trimmed === ">") {
+        setLocalContent("");
+        onChange({ type: "quote", content: "" });
+        e.preventDefault();
+        return;
+      }
+
+      // Code block
+      if (trimmed === "```") {
+        setLocalContent("");
+        onChange({ type: "code", content: "" });
         e.preventDefault();
         return;
       }
 
       // Divider
       if (trimmed === "---" || trimmed === "***") {
+        setLocalContent("");
         onChange({ type: "divider", content: "" });
         e.preventDefault();
         return;
       }
     }
-  }, [isComposing, index, onChange, onDelete, onAddBlockAfter]);
+  }, [isComposing, index, onChange, onDelete, onAddBlockAfter, saveToParent]);
 
-  // Handle input - update state without re-rendering
-  const handleInput = useCallback(() => {
-    if (contentRef.current && !isComposing) {
+  // Handle input - update local state immediately, save to parent debounced
+  const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
+    if (!isComposing && contentRef.current) {
       const text = contentRef.current.textContent || "";
-      onChange({ content: text });
+      // Update local state immediately for instant feedback
+      setLocalContent(text);
+      // Save to parent debounced
+      saveToParent(text);
     }
-  }, [isComposing, onChange]);
+  }, [isComposing, saveToParent]);
 
   // Handle composition events (IME input)
   const handleCompositionStart = () => setIsComposing(true);
@@ -135,7 +166,8 @@ export default function Block({
     setIsComposing(false);
     if (contentRef.current) {
       const text = contentRef.current.textContent || "";
-      onChange({ content: text });
+      setLocalContent(text);
+      saveToParent(text);
     }
   };
 
@@ -151,6 +183,8 @@ export default function Block({
       onCompositionStart: handleCompositionStart,
       onCompositionEnd: handleCompositionEnd,
       spellCheck: "true" as const,
+      // Prevent re-renders from affecting focus
+      key: `block-${block.id}`,
     };
 
     switch (block.type) {
@@ -161,7 +195,7 @@ export default function Block({
             className={`${baseClasses} text-2xl font-bold`}
             data-placeholder="Heading 1"
           >
-            {block.content}
+            {localContent}
           </div>
         );
       case "heading2":
@@ -171,7 +205,7 @@ export default function Block({
             className={`${baseClasses} text-xl font-bold`}
             data-placeholder="Heading 2"
           >
-            {block.content}
+            {localContent}
           </div>
         );
       case "heading3":
@@ -181,7 +215,7 @@ export default function Block({
             className={`${baseClasses} text-lg font-bold`}
             data-placeholder="Heading 3"
           >
-            {block.content}
+            {localContent}
           </div>
         );
       case "bulletList":
@@ -193,7 +227,7 @@ export default function Block({
               className={baseClasses}
               data-placeholder="List item"
             >
-              {block.content}
+              {localContent}
             </div>
           </div>
         );
@@ -206,7 +240,7 @@ export default function Block({
               className={baseClasses}
               data-placeholder="List item"
             >
-              {block.content}
+              {localContent}
             </div>
           </div>
         );
@@ -226,7 +260,7 @@ export default function Block({
               }`}
               data-placeholder="To-do"
             >
-              {block.content}
+              {localContent}
             </div>
           </div>
         );
@@ -238,7 +272,7 @@ export default function Block({
               className={`${baseClasses} italic text-muted-foreground`}
               data-placeholder="Quote"
             >
-              {block.content}
+              {localContent}
             </div>
           </div>
         );
@@ -250,7 +284,7 @@ export default function Block({
               className={`${baseClasses} font-mono text-sm`}
               data-placeholder="Code"
             >
-              {block.content}
+              {localContent}
             </code>
           </pre>
         );
@@ -263,7 +297,7 @@ export default function Block({
             className={baseClasses}
             data-placeholder="Type '/' for commands..."
           >
-            {block.content}
+            {localContent}
           </div>
         );
     }

@@ -75,3 +75,14 @@
 - [x] Persist theme preference in localStorage
 - [x] Apply theme to all components (sidebar, editor, modals, inputs)
 - [x] Ensure smooth toggle without cursor/state loss
+
+
+## PRIORITY ZERO — CRITICAL STRUCTURAL FAILURES
+- [x] Fix block editor focus + typing disappearing (block-local state)
+- [x] Fix page title input - typing does nothing
+- [x] Fix emoji picker size, stability, and live updates
+- [x] Restructure sidebar: Account section at top (non-clickable)
+- [x] Remove "Navigation" header from sidebar
+- [x] Move sidebar collapse button to bottom-right corner
+- [x] Implement functional search modal (pages + blocks)
+- [x] Move dark mode toggle to Settings panel only

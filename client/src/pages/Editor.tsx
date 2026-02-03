@@ -14,12 +14,21 @@ export default function Editor() {
   const { pageId } = useParams();
   const { user } = useAuth();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [localTitle, setLocalTitle] = useState("");
+  const titleSaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Get current page
   const { data: page, isLoading: pageLoading } = trpc.pages.get.useQuery(
     { id: pageId || "" },
     { enabled: !!pageId }
   );
+
+  // Sync page title to local state when page changes
+  useEffect(() => {
+    if (page) {
+      setLocalTitle(page.title);
+    }
+  }, [page?.id]);
 
   // Get blocks for current page
   const { data: blocks = [] } = trpc.blocks.list.useQuery(
@@ -32,11 +41,18 @@ export default function Editor() {
   const createPageMutation = trpc.pages.create.useMutation();
 
   const handleTitleChange = useCallback((newTitle: string) => {
-    if (pageId) {
-      // Update local state immediately
-      // updatePageMutation.mutate({ id: pageId, title: newTitle });
+    setLocalTitle(newTitle);
+    
+    // Debounced save to server
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
     }
-  }, [pageId]);
+    titleSaveTimeoutRef.current = setTimeout(() => {
+      if (pageId) {
+        updatePageMutation.mutate({ id: pageId, title: newTitle });
+      }
+    }, 500);
+  }, [pageId, updatePageMutation]);
 
   const handleIconChange = (emoji: string) => {
     if (pageId) {
@@ -101,10 +117,12 @@ export default function Editor() {
                 {page.icon || "📄"}
               </button>
               {showEmojiPicker && (
-                <div className="absolute top-full left-0 z-50 mt-2">
+                <div className="absolute top-full left-0 z-50 mt-2 bg-background border border-border rounded-lg shadow-lg" style={{ minWidth: "360px" }}>
                   <EmojiPicker
                     data={data}
                     onEmojiSelect={(emoji: any) => handleIconChange(emoji.native)}
+                    set="native"
+                    theme="auto"
                   />
                 </div>
               )}
@@ -113,14 +131,8 @@ export default function Editor() {
             <div className="flex-1">
               <input
                 type="text"
-                value={page.title}
-                onChange={(e) => {
-                  const newTitle = e.target.value;
-                  handleTitleChange(newTitle);
-                  if (pageId) {
-                    updatePageMutation.mutate({ id: pageId, title: newTitle });
-                  }
-                }}
+                value={localTitle}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 className="page-title border-0 bg-transparent p-0 text-4xl font-bold placeholder-muted-foreground focus:outline-none w-full"
                 placeholder="Untitled"
               />
