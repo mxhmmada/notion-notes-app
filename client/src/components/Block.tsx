@@ -183,14 +183,13 @@ export default function Block({
       onCompositionStart: handleCompositionStart,
       onCompositionEnd: handleCompositionEnd,
       spellCheck: "true" as const,
-      // Prevent re-renders from affecting focus
-      key: `block-${block.id}`,
     };
 
     switch (block.type) {
       case "heading1":
         return (
           <div
+            key={`block-${block.id}`}
             {...commonProps}
             className={`${baseClasses} text-2xl font-bold`}
             data-placeholder="Heading 1"
@@ -201,6 +200,7 @@ export default function Block({
       case "heading2":
         return (
           <div
+            key={`block-${block.id}`}
             {...commonProps}
             className={`${baseClasses} text-xl font-bold`}
             data-placeholder="Heading 2"
@@ -211,6 +211,7 @@ export default function Block({
       case "heading3":
         return (
           <div
+            key={`block-${block.id}`}
             {...commonProps}
             className={`${baseClasses} text-lg font-bold`}
             data-placeholder="Heading 3"
@@ -220,7 +221,7 @@ export default function Block({
         );
       case "bulletList":
         return (
-          <div className="flex gap-2">
+          <div key={`block-${block.id}`} className="flex gap-2">
             <span className="text-muted-foreground flex-shrink-0">•</span>
             <div
               {...commonProps}
@@ -233,7 +234,7 @@ export default function Block({
         );
       case "numberedList":
         return (
-          <div className="flex gap-2">
+          <div key={`block-${block.id}`} className="flex gap-2">
             <span className="text-muted-foreground flex-shrink-0">{index + 1}.</span>
             <div
               {...commonProps}
@@ -246,7 +247,7 @@ export default function Block({
         );
       case "todo":
         return (
-          <div className="flex gap-2 items-start">
+          <div key={`block-${block.id}`} className="flex gap-2 items-start">
             <input
               type="checkbox"
               checked={block.isCompleted}
@@ -266,7 +267,7 @@ export default function Block({
         );
       case "quote":
         return (
-          <div className="flex gap-2 border-l-4 border-muted pl-4">
+          <div key={`block-${block.id}`} className="flex gap-2 border-l-4 border-muted pl-4">
             <div
               {...commonProps}
               className={`${baseClasses} italic text-muted-foreground`}
@@ -278,7 +279,7 @@ export default function Block({
         );
       case "code":
         return (
-          <pre className="bg-muted p-3 rounded-lg overflow-x-auto">
+          <pre key={`block-${block.id}`} className="bg-muted p-3 rounded-lg overflow-x-auto">
             <code
               {...commonProps}
               className={`${baseClasses} font-mono text-sm`}
@@ -289,10 +290,11 @@ export default function Block({
           </pre>
         );
       case "divider":
-        return <div className="h-px bg-border my-2" />;
+        return <div key={`block-${block.id}`} className="h-px bg-border my-2" />;
       default:
         return (
           <div
+            key={`block-${block.id}`}
             {...commonProps}
             className={baseClasses}
             data-placeholder="Type '/' for commands..."
