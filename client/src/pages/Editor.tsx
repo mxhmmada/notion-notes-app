@@ -24,10 +24,11 @@ export default function Editor() {
     { enabled: !!pageId }
   );
 
-  // Sync page title to local state only on initial load
+  // Sync page title and icon when page changes
   useEffect(() => {
-    if (page && localTitle === "") {
+    if (page) {
       setLocalTitle(page.title);
+      setLocalIcon(page.icon || null);
     }
   }, [page?.id]);
 
@@ -55,12 +56,7 @@ export default function Editor() {
     }, 500);
   }, [pageId, updatePageMutation]);
 
-  // Sync icon from page
-  useEffect(() => {
-    if (page?.icon) {
-      setLocalIcon(page.icon);
-    }
-  }, [page?.icon]);
+
 
   const handleIconChange = (emoji: string) => {
     // Optimistic update - instant UI feedback

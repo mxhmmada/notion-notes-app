@@ -33,6 +33,13 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
   const deleteBlockMutation = trpc.blocks.delete.useMutation();
   const reorderBlocksMutation = trpc.blocks.reorder.useMutation();
 
+  // Reset blocks when pageId changes (page switching)
+  useEffect(() => {
+    setBlocks(initialBlocks);
+    // Clear block refs map when switching pages
+    blockRefsMap.current.clear();
+  }, [pageId, initialBlocks]);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -69,8 +76,8 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
         )
       );
 
-      // Auto-focus new block
-      setTimeout(() => {
+      // Auto-focus new block using requestAnimationFrame for reliable DOM timing
+      requestAnimationFrame(() => {
         const newBlockRef = blockRefsMap.current.get(result.id);
         if (newBlockRef) {
           newBlockRef.focus();
@@ -82,7 +89,7 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
           sel?.removeAllRanges();
           sel?.addRange(range);
         }
-      }, 0);
+      });
     } catch (error) {
       console.error("Failed to create block:", error);
       // Remove optimistic block on error
