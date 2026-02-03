@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,13 +23,18 @@ export default function Block({
 }: BlockProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
-  // Block-local state to prevent re-renders from parent
-  const [localContent, setLocalContent] = useState(block.content);
   const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const blockIdRef = useRef(block.id);
 
-  // Only update local content when block.id changes (new block), not on every parent render
+  // Track if this is a new block (different ID)
   useEffect(() => {
-    setLocalContent(block.content);
+    if (block.id !== blockIdRef.current) {
+      blockIdRef.current = block.id;
+      // New block - initialize content
+      if (contentRef.current) {
+        contentRef.current.textContent = block.content;
+      }
+    }
   }, [block.id]);
 
   // Debounced save to parent
@@ -56,7 +61,6 @@ export default function Block({
       
       // Save current content
       const content = target.textContent || "";
-      setLocalContent(content);
       saveToParent(content);
       
       // Create new block
@@ -92,70 +96,55 @@ export default function Block({
       if (trimmed.match(/^#+$/)) {
         const level = trimmed.length;
         if (level <= 3) {
-          setLocalContent("");
           onChange({ type: `heading${level}`, content: "" });
           e.preventDefault();
           return;
         }
       }
 
-      // Bullet list
-      if (trimmed === "-" || trimmed === "*") {
-        setLocalContent("");
+      // Bullet list shortcut
+      if (trimmed === "-") {
         onChange({ type: "bulletList", content: "" });
         e.preventDefault();
         return;
       }
 
-      // Numbered list
+      // Numbered list shortcut
       if (trimmed === "1.") {
-        setLocalContent("");
         onChange({ type: "numberedList", content: "" });
         e.preventDefault();
         return;
       }
 
-      // Todo checkbox
+      // Todo shortcut
       if (trimmed === "[]") {
-        setLocalContent("");
-        onChange({ type: "todo", content: "", isCompleted: false });
+        onChange({ type: "todo", content: "" });
         e.preventDefault();
         return;
       }
 
-      // Quote
+      // Quote shortcut
       if (trimmed === ">") {
-        setLocalContent("");
         onChange({ type: "quote", content: "" });
         e.preventDefault();
         return;
       }
 
-      // Code block
+      // Code block shortcut
       if (trimmed === "```") {
-        setLocalContent("");
         onChange({ type: "code", content: "" });
         e.preventDefault();
         return;
       }
-
-      // Divider
-      if (trimmed === "---" || trimmed === "***") {
-        setLocalContent("");
-        onChange({ type: "divider", content: "" });
-        e.preventDefault();
-        return;
-      }
     }
-  }, [isComposing, index, onChange, onDelete, onAddBlockAfter, saveToParent]);
+  }, [isComposing, saveToParent, onChange, index, onDelete, onAddBlockAfter]);
 
-  // Handle input - update local state immediately, save to parent debounced
+  // Handle input - update server debounced, but DON'T update React state
   const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     if (!isComposing && contentRef.current) {
       const text = contentRef.current.textContent || "";
-      // Update local state immediately for instant feedback
-      setLocalContent(text);
-      // Save to parent debounced
+      // Save to parent debounced - but don't update React state
+      // This prevents React from re-rendering and resetting the DOM
       saveToParent(text);
     }
   }, [isComposing, saveToParent]);
@@ -166,7 +155,6 @@ export default function Block({
     setIsComposing(false);
     if (contentRef.current) {
       const text = contentRef.current.textContent || "";
-      setLocalContent(text);
       saveToParent(text);
     }
   };
@@ -183,6 +171,8 @@ export default function Block({
       onCompositionStart: handleCompositionStart,
       onCompositionEnd: handleCompositionEnd,
       spellCheck: "true" as const,
+      className: "",
+      "data-placeholder": "",
     };
 
     switch (block.type) {
@@ -193,9 +183,7 @@ export default function Block({
             {...commonProps}
             className={`${baseClasses} text-2xl font-bold`}
             data-placeholder="Heading 1"
-          >
-            {localContent}
-          </div>
+          />
         );
       case "heading2":
         return (
@@ -204,9 +192,7 @@ export default function Block({
             {...commonProps}
             className={`${baseClasses} text-xl font-bold`}
             data-placeholder="Heading 2"
-          >
-            {localContent}
-          </div>
+          />
         );
       case "heading3":
         return (
@@ -215,9 +201,7 @@ export default function Block({
             {...commonProps}
             className={`${baseClasses} text-lg font-bold`}
             data-placeholder="Heading 3"
-          >
-            {localContent}
-          </div>
+          />
         );
       case "bulletList":
         return (
@@ -227,9 +211,7 @@ export default function Block({
               {...commonProps}
               className={baseClasses}
               data-placeholder="List item"
-            >
-              {localContent}
-            </div>
+            />
           </div>
         );
       case "numberedList":
@@ -240,9 +222,7 @@ export default function Block({
               {...commonProps}
               className={baseClasses}
               data-placeholder="List item"
-            >
-              {localContent}
-            </div>
+            />
           </div>
         );
       case "todo":
@@ -260,9 +240,7 @@ export default function Block({
                 block.isCompleted ? "line-through text-muted-foreground" : ""
               }`}
               data-placeholder="To-do"
-            >
-              {localContent}
-            </div>
+            />
           </div>
         );
       case "quote":
@@ -272,57 +250,58 @@ export default function Block({
               {...commonProps}
               className={`${baseClasses} italic text-muted-foreground`}
               data-placeholder="Quote"
-            >
-              {localContent}
-            </div>
+            />
           </div>
         );
       case "code":
         return (
-          <pre key={`block-${block.id}`} className="bg-muted p-3 rounded-lg overflow-x-auto">
+          <pre key={`block-${block.id}`} className="bg-muted p-3 rounded overflow-x-auto">
             <code
               {...commonProps}
               className={`${baseClasses} font-mono text-sm`}
               data-placeholder="Code"
-            >
-              {localContent}
-            </code>
+            />
           </pre>
         );
       case "divider":
-        return <div key={`block-${block.id}`} className="h-px bg-border my-2" />;
+        return (
+          <hr
+            key={`block-${block.id}`}
+            className="my-4 border-border"
+          />
+        );
       default:
         return (
           <div
             key={`block-${block.id}`}
             {...commonProps}
             className={baseClasses}
-            data-placeholder="Type '/' for commands..."
-          >
-            {localContent}
-          </div>
+            data-placeholder="Type '/' for commands"
+          />
         );
     }
   };
 
   return (
-    <div className="group flex items-start gap-2 py-1 hover:bg-muted/50 rounded px-2 transition-all duration-150">
-      {/* Drag Handle */}
-      <div className="opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-grab active:cursor-grabbing pt-1">
-        <GripVertical className="w-4 h-4 text-muted-foreground" />
+    <div className="group relative flex items-start gap-2 py-1">
+      {/* Drag handle */}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-1">
+        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
       </div>
 
-      {/* Block Content */}
-      <div className="flex-1 min-w-0">{renderBlockContent()}</div>
+      {/* Block content */}
+      <div className="flex-1 min-w-0">
+        {renderBlockContent()}
+      </div>
 
-      {/* Delete Button */}
+      {/* Delete button */}
       <Button
         variant="ghost"
         size="sm"
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 transition-all duration-150"
+        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
       >
-        <Trash2 className="w-4 h-4 text-destructive" />
+        <Trash2 className="w-4 h-4" />
       </Button>
     </div>
   );
