@@ -25,16 +25,13 @@ interface BlockEditorProps {
 }
 
 export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps) {
-  const [blocks, setBlocks] = useState(initialBlocks);
+  // Initialize blocks once, never resync on prop changes
+  const [blocks, setBlocks] = useState(() => initialBlocks);
   const blockRefsMap = useRef<Map<string, HTMLDivElement>>(new Map());
   const createBlockMutation = trpc.blocks.create.useMutation();
   const updateBlockMutation = trpc.blocks.update.useMutation();
   const deleteBlockMutation = trpc.blocks.delete.useMutation();
   const reorderBlocksMutation = trpc.blocks.reorder.useMutation();
-
-  useEffect(() => {
-    setBlocks(initialBlocks);
-  }, [initialBlocks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),

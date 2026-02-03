@@ -61,10 +61,11 @@ describe("Pages Operations", () => {
 
     it("should update page updatedAt timestamp", async () => {
       const pageId = await db.createPage(userId, "Test");
-      const before = new Date().getTime() - 100;
+      const originalPage = await db.getPageById(pageId, userId);
+      await new Promise(resolve => setTimeout(resolve, 10));
       await db.updatePage(pageId, userId, { title: "Updated" });
-      const page = await db.getPageById(pageId, userId);
-      expect(page?.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
+      const updatedPage = await db.getPageById(pageId, userId);
+      expect(updatedPage?.updatedAt.getTime()).toBeGreaterThan(originalPage?.updatedAt.getTime() || 0);
     });
   });
 

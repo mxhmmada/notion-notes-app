@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Copy } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import EmojiPicker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import BlockEditor from "@/components/BlockEditor";
@@ -15,6 +15,7 @@ export default function Editor() {
   const { user } = useAuth();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [localTitle, setLocalTitle] = useState("");
+  const [localIcon, setLocalIcon] = useState<string | null>(null);
   const titleSaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Get current page
@@ -23,9 +24,9 @@ export default function Editor() {
     { enabled: !!pageId }
   );
 
-  // Sync page title to local state when page changes
+  // Sync page title to local state only on initial load
   useEffect(() => {
-    if (page) {
+    if (page && localTitle === "") {
       setLocalTitle(page.title);
     }
   }, [page?.id]);
@@ -54,7 +55,17 @@ export default function Editor() {
     }, 500);
   }, [pageId, updatePageMutation]);
 
+  // Sync icon from page
+  useEffect(() => {
+    if (page?.icon) {
+      setLocalIcon(page.icon);
+    }
+  }, [page?.icon]);
+
   const handleIconChange = (emoji: string) => {
+    // Optimistic update - instant UI feedback
+    setLocalIcon(emoji);
+    
     if (pageId) {
       updatePageMutation.mutate({ id: pageId, icon: emoji });
     }
@@ -114,10 +125,10 @@ export default function Editor() {
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className="text-5xl hover:opacity-70 transition-all duration-150"
               >
-                {page.icon || "📄"}
+                {localIcon || page?.icon || "📄"}
               </button>
               {showEmojiPicker && (
-                <div className="absolute top-full left-0 z-50 mt-2 bg-background border border-border rounded-lg shadow-lg" style={{ minWidth: "360px" }}>
+                <div className="absolute top-full left-0 z-50 mt-2 bg-background border border-border rounded-lg shadow-lg" style={{ width: 360, height: 400, overflow: "hidden" }}>
                   <EmojiPicker
                     data={data}
                     onEmojiSelect={(emoji: any) => handleIconChange(emoji.native)}

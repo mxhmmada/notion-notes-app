@@ -86,3 +86,11 @@
 - [x] Move sidebar collapse button to bottom-right corner
 - [x] Implement functional search modal (pages + blocks)
 - [x] Move dark mode toggle to Settings panel only
+
+
+## CRITICAL ARCHITECTURE FIXES (REQUIRED)
+- [x] Fix page title state sync - prevent overwriting on every page update
+- [x] Add optimistic emoji state - instant UI updates without server lag
+- [x] Lock emoji picker dimensions - prevent layout glitching
+- [x] Fix BlockEditor initialization - prevent re-mounting on prop changes
+- [x] Verify editor stability and typing consistency
