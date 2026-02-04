@@ -47,18 +47,22 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
     })
   );
 
-  const handleAddBlock = useCallback(async () => {
+  const handleAddBlock = useCallback(async (index?: number) => {
+    const insertIndex = typeof index === 'number' ? index + 1 : blocks.length;
+    
     // Create block optimistically
     const newBlockId = `temp-${Date.now()}`;
     const newBlock = {
       id: newBlockId,
       type: "paragraph",
       content: "",
-      orderIndex: blocks.length,
+      orderIndex: insertIndex,
       pageId,
     };
 
-    setBlocks([...blocks, newBlock]);
+    const newBlocks = [...blocks];
+    newBlocks.splice(insertIndex, 0, newBlock);
+    setBlocks(newBlocks);
 
     // Persist to server
     try {
@@ -66,7 +70,7 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
         pageId,
         type: "paragraph",
         content: "",
-        orderIndex: blocks.length,
+        orderIndex: insertIndex,
       });
 
       // Replace temp ID with real ID
@@ -81,11 +85,11 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
         const newBlockRef = blockRefsMap.current.get(result.id);
         if (newBlockRef) {
           newBlockRef.focus();
-          // Move cursor to end
+          // Move cursor to start
           const range = document.createRange();
           const sel = window.getSelection();
           range.selectNodeContents(newBlockRef);
-          range.collapse(false);
+          range.collapse(true); // true means collapse to start
           sel?.removeAllRanges();
           sel?.addRange(range);
         }
@@ -95,7 +99,7 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
       // Remove optimistic block on error
       setBlocks((prevBlocks) => prevBlocks.filter((b) => b.id !== newBlockId));
     }
-  }, [pageId, blocks.length, createBlockMutation]);
+  }, [pageId, blocks, createBlockMutation]);
 
   const handleBlockChange = useCallback(
     (blockId: string, updates: any) => {
@@ -112,13 +116,33 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
 
   const handleBlockDelete = useCallback(
     (blockId: string) => {
+      const index = blocks.findIndex(b => b.id === blockId);
+      
       // Remove from local state
       setBlocks((prevBlocks) => prevBlocks.filter((b) => b.id !== blockId));
 
       // Persist deletion
       deleteBlockMutation.mutate({ id: blockId, pageId });
+
+      // Focus nearest block
+      requestAnimationFrame(() => {
+        const nearestBlock = blocks[index + 1] || blocks[index - 1];
+        if (nearestBlock) {
+          const ref = blockRefsMap.current.get(nearestBlock.id);
+          if (ref) {
+            ref.focus();
+            // Move cursor to end
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(ref);
+            range.collapse(false);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+          }
+        }
+      });
     },
-    [pageId, deleteBlockMutation]
+    [pageId, deleteBlockMutation, blocks]
   );
 
   const handleBlockReorder = useCallback(
@@ -167,7 +191,11 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
               onChange={(updates) => handleBlockChange(block.id, updates)}
               onDelete={() => handleBlockDelete(block.id)}
               onReorder={(toIndex) => handleBlockReorder(index, toIndex)}
-              onAddBlockAfter={handleAddBlock}
+              onAddBlockAfter={() => handleAddBlock(index)}
+              blockRef={(el) => {
+                if (el) blockRefsMap.current.set(block.id, el);
+                else blockRefsMap.current.delete(block.id);
+              }}
             />
           ))}
         </div>

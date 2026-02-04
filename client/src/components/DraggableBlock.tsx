@@ -10,6 +10,7 @@ interface DraggableBlockProps {
   onDelete: () => void;
   onReorder: (toIndex: number) => void;
   onAddBlockAfter: () => void;
+  blockRef?: (element: HTMLDivElement | null) => void;
 }
 
 export default function DraggableBlock({
@@ -20,6 +21,7 @@ export default function DraggableBlock({
   onDelete,
   onReorder,
   onAddBlockAfter,
+  blockRef,
 }: DraggableBlockProps) {
   const {
     attributes,
@@ -49,6 +51,7 @@ export default function DraggableBlock({
         onAddBlockAfter={onAddBlockAfter}
         dragHandleRef={setActivatorNodeRef}
         dragListeners={listeners}
+        contentRefCallback={blockRef}
       />
     </div>
   );

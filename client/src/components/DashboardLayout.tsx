@@ -122,14 +122,14 @@ export default function DashboardLayout({
                   {user?.name?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              {!isCollapsed && (
+              {!isCollapsed ? (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{user?.name}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {user?.email}
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -139,20 +139,20 @@ export default function DashboardLayout({
               variant="ghost"
               size="sm"
               onClick={() => setShowSettingsPanel(true)}
-              className="w-full justify-start"
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
               title="Settings"
             >
-              <Settings className="w-4 h-4 mr-2" />
+              <Settings className={cn("w-4 h-4", !isCollapsed && "mr-2")} />
               {!isCollapsed && "Settings"}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowSearchModal(true)}
-              className="w-full justify-start"
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
               title="Search"
             >
-              <Search className="w-4 h-4 mr-2" />
+              <Search className={cn("w-4 h-4", !isCollapsed && "mr-2")} />
               {!isCollapsed && "Search"}
             </Button>
           </div>
@@ -168,7 +168,7 @@ export default function DashboardLayout({
                       isActive={isActive}
                       onClick={() => setLocation(`/page/${page.id}`)}
                       tooltip={page.title}
-                      className="h-10 transition-all font-normal"
+                      className={cn("h-10 transition-all font-normal", isCollapsed && "justify-center px-0")}
                     >
                       <span className="text-lg">{page.icon || "📄"}</span>
                       {!isCollapsed && (
@@ -187,18 +187,20 @@ export default function DashboardLayout({
               variant="ghost"
               size="sm"
               onClick={() => createPageMutation.mutate({})}
-              className="w-full justify-start"
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
+              title={isCollapsed ? "New Page" : undefined}
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className={cn("w-4 h-4", !isCollapsed && "mr-2")} />
               {!isCollapsed && "New Page"}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setLocation("/trash")}
-              className="w-full justify-start"
+              className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-start")}
+              title={isCollapsed ? "Trash" : undefined}
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className={cn("w-4 h-4", !isCollapsed && "mr-2")} />
               {!isCollapsed && "Trash"}
             </Button>
           </div>

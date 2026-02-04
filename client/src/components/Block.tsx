@@ -1,6 +1,17 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { GripVertical, Trash2 } from "lucide-react";
+import { GripVertical, Trash2, Type, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
 
 interface BlockProps {
   block: any;
@@ -12,6 +23,7 @@ interface BlockProps {
   onAddBlockAfter: () => void;
   dragHandleRef?: (element: HTMLElement | null) => void;
   dragListeners?: any;
+  contentRefCallback?: (element: HTMLDivElement | null) => void;
 }
 
 export default function Block({
@@ -24,9 +36,11 @@ export default function Block({
   onAddBlockAfter,
   dragHandleRef,
   dragListeners,
+  contentRefCallback,
 }: BlockProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const blockIdRef = useRef(block.id);
 
@@ -164,10 +178,13 @@ export default function Block({
   };
 
   const renderBlockContent = () => {
-    const baseClasses = "block-content w-full outline-none";
+    const baseClasses = "block-content w-full outline-none cursor-text";
 
     const commonProps = {
-      ref: contentRef,
+      ref: (el: HTMLDivElement | null) => {
+        (contentRef as any).current = el;
+        if (contentRefCallback) contentRefCallback(el);
+      },
       contentEditable: true,
       suppressContentEditableWarning: true,
       onKeyDown: handleKeyDown,
@@ -287,30 +304,90 @@ export default function Block({
   };
 
   return (
-    <div className="group relative flex items-start gap-2 py-1">
-      {/* Drag handle */}
-      <div 
-        ref={dragHandleRef}
-        {...dragListeners}
-        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-1"
-      >
-        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+    <div className={cn(
+      "group relative flex items-start gap-2 py-1 transition-colors",
+      isSelected && "bg-blue-50 dark:bg-blue-900/20"
+    )}>
+      {/* Drag handle & Menu */}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-1">
+        <DropdownMenu onOpenChange={setIsSelected}>
+          <DropdownMenuTrigger asChild>
+            <div 
+              ref={dragHandleRef}
+              {...dragListeners}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (isSelected && (e.key === "Delete" || e.key === "Backspace")) {
+                  e.preventDefault();
+                  onDelete();
+                }
+              }}
+              className={cn(
+                "cursor-pointer hover:bg-accent rounded p-0.5 outline-none focus:bg-accent",
+                isSelected && "bg-accent"
+              )}
+            >
+              <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={onDelete} variant="destructive">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Type className="w-4 h-4 mr-2" />
+                Turn into
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => onChange({ type: "paragraph" })}>
+                  <Type className="w-4 h-4 mr-2" />
+                  Text
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "heading1" })}>
+                  <Heading1 className="w-4 h-4 mr-2" />
+                  Heading 1
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "heading2" })}>
+                  <Heading2 className="w-4 h-4 mr-2" />
+                  Heading 2
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "heading3" })}>
+                  <Heading3 className="w-4 h-4 mr-2" />
+                  Heading 3
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "bulletList" })}>
+                  <List className="w-4 h-4 mr-2" />
+                  Bullet list
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "numberedList" })}>
+                  <ListOrdered className="w-4 h-4 mr-2" />
+                  Numbered list
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "todo" })}>
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  To-do list
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "quote" })}>
+                  <Quote className="w-4 h-4 mr-2" />
+                  Quote
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange({ type: "code" })}>
+                  <Code className="w-4 h-4 mr-2" />
+                  Code
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Block content */}
       <div className="flex-1 min-w-0">
         {renderBlockContent()}
       </div>
-
-      {/* Delete button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-      >
-        <Trash2 className="w-4 h-4" />
-      </Button>
     </div>
   );
 }
