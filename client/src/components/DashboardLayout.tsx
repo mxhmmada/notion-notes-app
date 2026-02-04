@@ -22,6 +22,7 @@ import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LogOut, ChevronLeft, Plus, Trash2, Settings, Search } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";

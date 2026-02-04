@@ -204,7 +204,7 @@ export default function BlockEditor({ pageId, initialBlocks }: BlockEditorProps)
       <Button
         variant="ghost"
         size="sm"
-        onClick={handleAddBlock}
+        onClick={() => handleAddBlock()}
         className="mt-4 text-muted-foreground hover:text-foreground"
       >
         <Plus className="w-4 h-4 mr-2" />

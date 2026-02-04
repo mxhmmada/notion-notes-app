@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import * as db from "./db";
-
-// Mock the database module
-vi.mock("./db", { spy: true });
+import * as db from "./db.mock";
 
 describe("Pages Operations", () => {
   const userId = 1;
@@ -62,10 +59,14 @@ describe("Pages Operations", () => {
     it("should update page updatedAt timestamp", async () => {
       const pageId = await db.createPage(userId, "Test");
       const originalPage = await db.getPageById(pageId, userId);
+      const originalTime = originalPage?.updatedAt.getTime() || 0;
+      
+      // Wait a bit to ensure a different timestamp
       await new Promise(resolve => setTimeout(resolve, 10));
+      
       await db.updatePage(pageId, userId, { title: "Updated" });
       const updatedPage = await db.getPageById(pageId, userId);
-      expect(updatedPage?.updatedAt.getTime()).toBeGreaterThan(originalPage?.updatedAt.getTime() || 0);
+      expect(updatedPage?.updatedAt.getTime()).toBeGreaterThan(originalTime);
     });
   });
 
